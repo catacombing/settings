@@ -172,6 +172,7 @@ impl WiFiDialog {
             !access_point.connected && access_point.private && !profile.is_some();
         let password_input = requires_password.then(|| {
             let password_input = PasswordEntry::new();
+            password_input.set_show_peek_icon(true);
             widget_box.append(&password_input);
             password_input
         });
