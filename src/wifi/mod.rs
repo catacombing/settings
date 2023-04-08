@@ -5,8 +5,8 @@ use std::sync::Arc;
 use gtk4::glib::{clone, MainContext};
 use gtk4::prelude::*;
 use gtk4::{
-    Button, Inhibit, ListBox, Orientation, PasswordEntry, ScrolledWindow, SelectionMode, Switch,
-    Widget,
+    Align, Button, Inhibit, ListBox, Orientation, PasswordEntry, ScrolledWindow, SelectionMode,
+    Switch, Widget,
 };
 use zbus::export::futures_util::stream::StreamExt;
 use zbus::zvariant::OwnedObjectPath;
@@ -173,6 +173,9 @@ impl WiFiDialog {
     ) -> Self {
         // Create box to hold all elements.
         let widget_box = gtk4::Box::new(Orientation::Vertical, 0);
+        widget_box.set_margin_start(30);
+        widget_box.set_margin_end(30);
+        widget_box.set_valign(Align::Center);
 
         // Add password input if required.
         let requires_password =
@@ -205,6 +208,7 @@ impl WiFiDialog {
 
         // Create and add confirm button.
         let confirm_button = Button::with_label(confirm_label);
+        confirm_button.set_margin_top(30);
         widget_box.append(&confirm_button);
 
         // Add confirm button handler.
