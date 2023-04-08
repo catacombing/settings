@@ -1,15 +1,18 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use glib::{clone, ExitCode, IsA};
+use gtk4::gdk::Display;
+use gtk4::glib::{clone, ExitCode, IsA};
 use gtk4::prelude::*;
 use gtk4::{
-    ActionBar, Application, ApplicationWindow, Button, Label, Orientation, ScrolledWindow, Stack,
-    StackTransitionType, Widget,
+    ActionBar, Application, ApplicationWindow, Button, CssProvider, Label, Orientation,
+    ScrolledWindow, Stack, StackTransitionType, StyleContext, Widget,
 };
 
 use crate::wifi::WiFi;
 
+mod action_row;
+mod icon;
 mod wifi;
 
 /// Wayland application ID.
@@ -22,6 +25,20 @@ const ROOT_NAME: &str = "index";
 async fn main() -> ExitCode {
     // Setup application.
     let application = Application::builder().application_id(APP_ID).build();
+
+    // Load CSS.
+    application.connect_startup(|_| {
+        // Create stylesheet.
+        let provider = CssProvider::new();
+        provider.load_from_data(include_str!("../style.css"));
+
+        // Apply stylesheet to the application.
+        StyleContext::add_provider_for_display(
+            &Display::default().expect("connect to display"),
+            &provider,
+            gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    });
 
     // Handle application activation event.
     application.connect_activate(activate);

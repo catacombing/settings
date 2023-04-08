@@ -1,0 +1,8 @@
+.actionrow-text {
+    font-size: 1.2em;
+}
+
+.actionrow-text > label:nth-child(2) {
+    font-size: 0.7em;
+    opacity: 0.6;
+}

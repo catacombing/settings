@@ -11,6 +11,5 @@ edition = "2021"
 [dependencies]
 zbus = { version = "3.11.0", default-features = false, features = ["tokio"] }
 tokio = { version = "1.26.0", features = ["macros", "rt-multi-thread"] }
-gtk4 = { version = "0.6.2", features = ["v4_10"] }
+gtk4 = { version = "0.6.2", features = ["v4_8"] }
 byteorder = "1.4.3"
-glib = "0.17.3"

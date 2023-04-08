@@ -2,13 +2,18 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use glib::{clone, MainContext};
+use gtk4::glib::{clone, MainContext};
 use gtk4::prelude::*;
-use gtk4::{Button, Inhibit, Orientation, PasswordEntry, ScrolledWindow, Switch, Widget};
+use gtk4::{
+    Button, Inhibit, ListBox, Orientation, PasswordEntry, ScrolledWindow, SelectionMode, Switch,
+    Widget,
+};
 use zbus::export::futures_util::stream::StreamExt;
 use zbus::zvariant::OwnedObjectPath;
 use zbus::Connection;
 
+use crate::action_row::ActionRowBuilder;
+use crate::icon::Icon;
 use crate::wifi::dbus::{AccessPoint, NetworkManagerProxy};
 use crate::{Navigator, SettingsPanel};
 
@@ -80,8 +85,8 @@ impl WiFi {
                     let mut ap_change_stream = device.receive_access_points_changed().await;
                     while ap_change_stream.next().await.is_some() {
                         // Update the view with our new APs.
-                        let aps_box = visible_aps(navigator.clone(), &connection).await;
-                        aps_scroll.set_child(aps_box.as_ref().ok());
+                        let aps = visible_aps(navigator.clone(), &connection).await;
+                        aps_scroll.set_child(aps.as_ref().ok());
                     }
                 },
 
@@ -90,8 +95,8 @@ impl WiFi {
                     let mut active_ap_change_stream = device.receive_active_access_point_changed().await;
                     while active_ap_change_stream.next().await.is_some() {
                         // Update the view with our new APs.
-                        let aps_box = visible_aps(navigator.clone(), &connection).await;
-                        aps_scroll.set_child(aps_box.as_ref().ok());
+                        let aps = visible_aps(navigator.clone(), &connection).await;
+                        aps_scroll.set_child(aps.as_ref().ok());
                     }
                 },
             );
@@ -118,39 +123,41 @@ impl SettingsPanel for WiFi {
 }
 
 /// Create a box containing buttons for all visible APs.
-async fn visible_aps(navigator: Navigator, connection: &Connection) -> zbus::Result<gtk4::Box> {
+async fn visible_aps(navigator: Navigator, connection: &Connection) -> zbus::Result<ListBox> {
     let mut known_profiles = dbus::wifi_profiles(connection).await?;
 
     // Create new container for all the AP buttons.
-    let aps_box = gtk4::Box::new(Orientation::Vertical, 0);
+    let aps_list = ListBox::new();
+    aps_list.set_selection_mode(SelectionMode::None);
 
     // Create a button for every AP.
     let access_points = dbus::access_points(connection).await?;
     for access_point in access_points {
-        // Create text identifying this AP.
-        let connected = if access_point.connected { "connected - " } else { "" };
-        let private = if access_point.private { "🔒" } else { "🔓" };
-        let frequency = if access_point.frequency > 5000 { "5GHz" } else { "2.4GHz" };
-        let ap_label = format!(
-            "{connected}{} - {}% - {private} - {frequency}",
-            access_point.ssid, access_point.strength,
-        );
-
         // Get WiFi profile for this AP.
         let profile = Rc::new(known_profiles.remove(&access_point.bssid));
 
-        // Create button for this AP.
+        // Get icons for the AP.
+        let strength_svg = Icon::wifi_from_strength(access_point.strength);
+        let access_icon = if access_point.private { Icon::Locked } else { Icon::Unlocked };
+
+        let ssid = access_point.ssid.clone();
         let navigator = navigator.clone();
-        let ap_button = Button::with_label(&ap_label);
-        ap_button.connect_clicked(move |_| {
+
+        // Create WiFi AP row.
+        let mut ap_row = ActionRowBuilder::new(&ssid);
+        ap_row.with_description(access_point.connected.then_some("Connected"));
+        ap_row.with_start_icon(strength_svg.image());
+        ap_row.with_end_icon(access_icon.image());
+        ap_row.with_connect_click(move || {
             // Show dialog window.
             let dialog = WiFiDialog::new(&access_point, &profile, navigator.clone());
             navigator.show_child(navigator.clone(), &dialog.widget_box, &access_point.ssid);
         });
-        aps_box.append(&ap_button);
+
+        aps_list.append(&ap_row.build());
     }
 
-    Ok(aps_box)
+    Ok(aps_list)
 }
 
 /// WiFi AP configuration.
