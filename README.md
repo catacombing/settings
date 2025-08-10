@@ -1,3 +1,5 @@
+# **Deprecated in favor of https://github.com/catacombing/gorm**
+
 # Settings - Mobile-optimized Linux desktop settings
 
 Settings is an appliacation that allows controlling commonly used Linux desktop
